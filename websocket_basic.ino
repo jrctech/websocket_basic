@@ -30,6 +30,9 @@ void handleRoot(){
   s += "Socket.send(document.getElementById('txBar').value);";
   s += "document.getElementById('txBar').value = '';";
   s += "}";
+  s += "function SendBrightness(){";
+  s += "Socket.send('#' + document.getElementById('brightness').value);";
+  s += "}";
   s += "</script>";
   s += "</head>";
   s += "<body onload = 'init()'>";
@@ -39,6 +42,8 @@ void handleRoot(){
   s += "<textarea id='rxConsole' rows= '10' cols='50' readonly></textarea>";
   s += "<h3>Write here to send text to the ESP12E</h3>";
   s += "<input type='text' id='txBar' onkeydown='if(event.keyCode == 13) SendText();'>";
+  s += "<h3>Move the slider to change brightness of the builtin led</h3>";
+  s += "<input type='range' min = '0' max = '1023' value = '512' id='brightness' oninput='SendBrightness()'>";
   s += "</div>";
   s += "</body>";
   server.send(200, "text/html", s);
@@ -91,9 +96,18 @@ void loop() {
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length){
     if (type == WStype_TEXT){
-      Serial.print("Received: ");
-      for (int i=0; i< length; i++)  
-        Serial.print((char)payload[i]);
-      Serial.println();
+      if (payload[0]=='#'){
+        uint16_t brightness = (uint16_t)strtol((const char *) &payload[1], NULL, 10);
+        brightness = 1024 - brightness;
+        analogWrite(led, brightness);
+        Serial.print("Brightness: ");
+        Serial.println(brightness);
+      }
+      else{
+        Serial.print("Received: ");
+        for (int i=0; i< length; i++)  
+          Serial.print((char)payload[i]);
+        Serial.println();
+      }
     }
 }
